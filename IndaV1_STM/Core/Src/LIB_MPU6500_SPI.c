@@ -218,18 +218,7 @@ MPU6500_status_e	MPU6500_Init(MPU6500_Init_Values_t * offset,uint8_t N,uint8_t d
 	MPU6500_Write_Reg(OFFSET_H_AY, hr);
 	MPU6500_Write_Reg(OFFSET_L_AY, lr);
 
-/*
-	hr=MPU6500_Read_Reg(OFFSET_H_AZ);
-	lr=MPU6500_Read_Reg(OFFSET_L_AZ);
-	valor=(((hr<<8)|lr))>>1;
-	offset->MPU6500_ACCELZ.MPU6500_int16=(offset->MPU6500_ACCELZ.MPU6500_int16)-2048;
-	resta=(int16_t)valor;
-	resta=resta-((offset->MPU6500_ACCELZ.MPU6500_int16)/2);
-	hr=resta>>7;
-	lr=resta<<1;
-	MPU6500_Write_Reg(OFFSET_H_AZ, hr);
-	MPU6500_Write_Reg(OFFSET_L_AZ, lr);
-*/
+
 	//Se leen registros altos y bajos
 	hr=MPU6500_Read_Reg(OFFSET_H_AZ);
 	lr=MPU6500_Read_Reg(OFFSET_L_AZ);
