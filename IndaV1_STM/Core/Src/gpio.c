@@ -53,18 +53,18 @@ void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, MOTOR_EN_Pin|IR2_TX_Pin|IR1_TX_Pin|IR3_TX_Pin
-                          |IR4_TX_Pin|LED1_Pin|LED2_Pin, GPIO_PIN_RESET);
+                          |IR4_TX_Pin|LED2_Pin|LED1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LED3_Pin|LED4_Pin|BOOT1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(SPI_NSS_GPIO_Port, SPI_NSS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(SPI_NSS_GPIO_Port, SPI_NSS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : MOTOR_EN_Pin IR2_TX_Pin IR1_TX_Pin IR3_TX_Pin
-                           IR4_TX_Pin LED1_Pin LED2_Pin */
+                           IR4_TX_Pin LED2_Pin LED1_Pin */
   GPIO_InitStruct.Pin = MOTOR_EN_Pin|IR2_TX_Pin|IR1_TX_Pin|IR3_TX_Pin
-                          |IR4_TX_Pin|LED1_Pin|LED2_Pin;
+                          |IR4_TX_Pin|LED2_Pin|LED1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -81,7 +81,7 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = SPI_NSS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(SPI_NSS_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : Enc_D_C_Pin */

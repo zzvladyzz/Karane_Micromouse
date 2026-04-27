@@ -30,11 +30,12 @@
 #include <stdio.h>
 #include "LIB_MPU6500_SPI.h"
 #include "stdbool.h"
+#include "LIB_Motores.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+Motores_Init Motor;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -71,6 +72,8 @@ MPU6500_Init_float_t	MPU6500_Conv;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
+void Inicializar_Sistema();
+void MPU6500();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -170,46 +173,7 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
-
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
-
-  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,00);
-  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,00);
-  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_3,00);
-  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_4,00);
-
-  __HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_4,00);
-
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5,GPIO_PIN_SET);
-  HAL_Delay(1000);
-
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5,GPIO_PIN_RESET);
-
-
-  HAL_GPIO_WritePin(IR1_TX_GPIO_Port, IR1_TX_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(IR2_TX_GPIO_Port, IR2_TX_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(IR3_TX_GPIO_Port, IR3_TX_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(IR4_TX_GPIO_Port, IR4_TX_Pin, GPIO_PIN_RESET);
-
-  MPU6500_Status=MPU6500_Init(&MPU6500_Datos,10,DPS250,G2);
-  if (MPU6500_Status==MPU6500_fail) {
-  	for (;;) {
-  		 sprintf(bufferTxt,"Fallo al iniciar MPU\r\n");
-  				  HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-  				HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_5);
-  				HAL_Delay(500);
-  		}
-  }
-  sprintf(bufferTxt," Exito al iniciar MPU\r\n");
- 		  HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
- HAL_ADC_Start(&hadc1);
-
-  HAL_Delay(1000);
-uint16_t adc2_val=00;
+  Inicializar_Sistema();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -220,46 +184,9 @@ uint16_t adc2_val=00;
 
     /* USER CODE BEGIN 3 */
 
-	/*  if(Enabl==false){
-Enabl=true;
-		  for (int var = 0; var < 300; var+=10) {
 
-		  __HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_4,var);
-
-		  		  HAL_Delay(500);
-		  	  }
-	  }*/
-
-	  HAL_GPIO_WritePin(MOTOR_EN_GPIO_Port, MOTOR_EN_Pin, GPIO_PIN_SET);
-	  //HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_4);
-	  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_5);
-	  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
-	  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_1);
-	  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,980);
-	    __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_2,999);
-	    __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_3,980);
-	    __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_4,999);
-
-	  /*MPU6500_Read(&MPU6500_Datos);
-	  MPU6500_Conv=MPU6500_Converter(&MPU6500_Datos, DPS250_CONV, G2_CONV);
-
-	sprintf(bufferTxt," Gx= %.2f ",MPU6500_Conv.MPU6500_floatGX);
-	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-
-	sprintf(bufferTxt," Gy= %.2f ",MPU6500_Conv.MPU6500_floatGY);
-	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-
-	sprintf(bufferTxt," Gz= %.2f ",MPU6500_Conv.MPU6500_floatGZ);
-	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-
-	sprintf(bufferTxt," Ax= %.2f ",MPU6500_Conv.MPU6500_floatAX);
-	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-
-	sprintf(bufferTxt," Ay= %.2f ",MPU6500_Conv.MPU6500_floatAY);
-	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-
-	sprintf(bufferTxt," Az= %.2f \r\n",MPU6500_Conv.MPU6500_floatAZ);
-	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+	  MPU6500();
+	  /*
 
 */
 
@@ -275,7 +202,7 @@ Enabl=true;
 		    // 4. Parar el ADC para liberar el secuenciador
 		    HAL_ADC_Stop(&hadc1);
 	    }*/
-		adc2_val=(uint16_t)ADC_Read_Manual(&hadc1, 4);
+/*		adc2_val=(uint16_t)ADC_Read_Manual(&hadc1, 4);
 		sprintf(bufferTxt," BATERIA= %d ",adc2_val);
 		HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 
@@ -301,7 +228,7 @@ Enabl=true;
 	sprintf(bufferTxt," PULSADOR= %d \r\n",adc2_val);
 	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 
-
+*/
 
 
 /*
@@ -354,8 +281,8 @@ Enabl=true;
 		sprintf(bufferTxt," contD= %ld \r\n",contD);
 	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 
-*/
-	  	HAL_Delay(300);
+
+	  	HAL_Delay(300);*/
 
   }
 
@@ -408,6 +335,70 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void Inicializar_Sistema()
+{
+	/*
+	 * Inicializar PWM Timer 1 para motores
+	 */
+	Inicializar_Motores(&Motor);
+	Inicializar_Motor_Coreless();
+
+	HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, 0);
+	HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, 0);
+	HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, 0);
+	HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, 0);
+
+	HAL_GPIO_WritePin(IR1_TX_GPIO_Port, IR1_TX_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(IR2_TX_GPIO_Port, IR2_TX_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(IR3_TX_GPIO_Port, IR3_TX_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(IR4_TX_GPIO_Port, IR4_TX_Pin, GPIO_PIN_RESET);
+
+
+	HAL_GPIO_WritePin(LED1_GPIO_Port	, LED1_Pin,GPIO_PIN_SET);
+	HAL_Delay(1000);
+	MPU6500_Status=MPU6500_Init(&MPU6500_Datos,50,DPS250,G2);
+	if (MPU6500_Status==MPU6500_fail) {
+		for (;;) {
+			sprintf(bufferTxt,"Fallo al iniciar MPU\r\n");
+			HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+			HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
+			HAL_Delay(500);
+		}
+	}
+	sprintf(bufferTxt," Exito al iniciar MPU\r\n");
+	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
+
+	//HAL_ADC_Start(&hadc1);
+
+}
+
+void MPU6500()
+{
+	MPU6500_Read(&MPU6500_Datos);
+	MPU6500_Conv=MPU6500_Converter(&MPU6500_Datos);
+
+	sprintf(bufferTxt," Gx= %.2f ",MPU6500_Conv.MPU6500_floatGX);
+	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+
+	sprintf(bufferTxt," Gy= %.2f ",MPU6500_Conv.MPU6500_floatGY);
+	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+
+	sprintf(bufferTxt," Gz= %.2f ",MPU6500_Conv.MPU6500_floatGZ);
+	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+
+	sprintf(bufferTxt," Ax= %.2f ",MPU6500_Conv.MPU6500_floatAX);
+	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+
+	sprintf(bufferTxt," Ay= %.2f ",MPU6500_Conv.MPU6500_floatAY);
+	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+
+	sprintf(bufferTxt," Az= %.2f \r\n",MPU6500_Conv.MPU6500_floatAZ);
+	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+
+	HAL_Delay(500);
+}
+
 
 /* USER CODE END 4 */
 

@@ -83,10 +83,10 @@ void Error_Handler(void);
 #define SENSOR_MI_GPIO_Port GPIOA
 #define PULSADOR_Pin GPIO_PIN_7
 #define PULSADOR_GPIO_Port GPIOA
-#define LED1_Pin GPIO_PIN_4
-#define LED1_GPIO_Port GPIOC
-#define LED2_Pin GPIO_PIN_5
+#define LED2_Pin GPIO_PIN_4
 #define LED2_GPIO_Port GPIOC
+#define LED1_Pin GPIO_PIN_5
+#define LED1_GPIO_Port GPIOC
 #define LED3_Pin GPIO_PIN_0
 #define LED3_GPIO_Port GPIOB
 #define LED4_Pin GPIO_PIN_1

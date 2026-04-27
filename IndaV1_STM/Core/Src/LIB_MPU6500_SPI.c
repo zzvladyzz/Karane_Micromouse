@@ -11,6 +11,10 @@
 #define		SPI_PORT			hspi3
 #define 	SPI_PORT_NSS		SPI_NSS_GPIO_Port
 #define		SPI_PIN_NSS			SPI_NSS_Pin
+
+static float ConvDPS=0.0f;
+static float ConvG=0.0f;
+
 /**
  * @brief lee los valores en bruto del MPU
  * @param valoresMPU: Se debe mandar una estructura de tipo MPU6500_Init_values_t
@@ -101,8 +105,43 @@ void	MPU6500_Write(uint8_t Reg,uint8_t* value, uint8_t  len){
  */
 MPU6500_status_e	MPU6500_Init(MPU6500_Init_Values_t * offset,uint8_t N,uint8_t dps,uint8_t g){
 
-	double PromX[N],PromY[N],PromZ[N];
+	switch (dps) {
+	case DPS2000:
+		ConvDPS=DPS2000_CONV;
+		break;
+	case DPS1000:
+		ConvDPS=DPS1000_CONV;
+		break;
+	case DPS500:
+		ConvDPS=DPS500_CONV;
+		break;
+	case DPS250:
+		ConvDPS=DPS250_CONV;
+		break;
+	default:
+		ConvDPS=DPS250_CONV;
+		break;
+	}
+	switch (g) {
+	case G16:
+		ConvG=G16_CONV;
+		break;
+	case G8:
+		ConvG=G8_CONV;
+		break;
+	case G4:
+		ConvG=G4_CONV;
+		break;
+	case G2:
+		ConvG=G2_CONV;
+		break;
+	default:
+		ConvG=G2_CONV;
+		break;
+	}
+
 	double SumaX,SumaY,SumaZ=0;
+
 
 	uint8_t status_mpu=MPU6500_Read_Reg(WHO_AM_I);
 	if (status_mpu!=0x70) {
@@ -120,19 +159,31 @@ MPU6500_status_e	MPU6500_Init(MPU6500_Init_Values_t * offset,uint8_t N,uint8_t d
 	 */
 	for (uint8_t n = 0; n < N; ++n) {
 		MPU6500_Read(offset);
-		PromX[n]=(double)offset->MPU6500_ACCELX.MPU6500_int16;
-		PromY[n]=(double)offset->MPU6500_ACCELY.MPU6500_int16;
-		PromZ[n]=(double)offset->MPU6500_ACCELZ.MPU6500_int16;
-		HAL_Delay(500);
+		SumaX+=(double)offset->MPU6500_ACCELX.MPU6500_int16;
+		SumaY+=(double)offset->MPU6500_ACCELY.MPU6500_int16;
+		SumaZ+=(double)offset->MPU6500_ACCELZ.MPU6500_int16;
+		HAL_Delay(5);
 	}
-	for (uint8_t n = 0; n < N; ++n) {
-		SumaX=SumaX+PromX[n];
-		SumaY=SumaY+PromY[n];
-		SumaZ=SumaZ+PromZ[n];
-	}
+
 	offset->MPU6500_ACCELX.MPU6500_int16=(int16_t)SumaX/N;
 	offset->MPU6500_ACCELY.MPU6500_int16=(int16_t)SumaY/N;
 	offset->MPU6500_ACCELZ.MPU6500_int16=(int16_t)SumaZ/N;
+
+	SumaX=0;
+	SumaY=0;
+	SumaZ=0;
+
+	for (uint8_t n = 0; n < N; ++n) {
+		MPU6500_Read(offset);
+		SumaX+=(double)offset->MPU6500_GYROX.MPU6500_int16;
+		SumaY+=(double)offset->MPU6500_GYROY.MPU6500_int16;
+		SumaZ+=(double)offset->MPU6500_GYROZ.MPU6500_int16;
+		HAL_Delay(5);
+	}
+	offset->MPU6500_GYROX.MPU6500_int16=(int16_t)SumaX/N;
+	offset->MPU6500_GYROY.MPU6500_int16=(int16_t)SumaY/N;
+	offset->MPU6500_GYROZ.MPU6500_int16=(int16_t)SumaZ/N;
+
 
 	/**
 	 * Se lee los offset del ACCEL almacenados en el MPU para la resta correspondiente
@@ -167,6 +218,7 @@ MPU6500_status_e	MPU6500_Init(MPU6500_Init_Values_t * offset,uint8_t N,uint8_t d
 	MPU6500_Write_Reg(OFFSET_H_AY, hr);
 	MPU6500_Write_Reg(OFFSET_L_AY, lr);
 
+/*
 	hr=MPU6500_Read_Reg(OFFSET_H_AZ);
 	lr=MPU6500_Read_Reg(OFFSET_L_AZ);
 	valor=(((hr<<8)|lr))>>1;
@@ -175,6 +227,32 @@ MPU6500_status_e	MPU6500_Init(MPU6500_Init_Values_t * offset,uint8_t N,uint8_t d
 	resta=resta-((offset->MPU6500_ACCELZ.MPU6500_int16)/2);
 	hr=resta>>7;
 	lr=resta<<1;
+	MPU6500_Write_Reg(OFFSET_H_AZ, hr);
+	MPU6500_Write_Reg(OFFSET_L_AZ, lr);
+*/
+	//Se leen registros altos y bajos
+	hr=MPU6500_Read_Reg(OFFSET_H_AZ);
+	lr=MPU6500_Read_Reg(OFFSET_L_AZ);
+	// debido a que lo 15 bits superiores son donde esta el offset y el 1 bit es de temperatura
+	// se guarda este bit para sumarlo al final y agregarlo nuevamente
+	uint8_t ValorTemp=lr&0x01;
+
+	//colocamos todo en otra variable a sumar
+	valor=((hr<<8)|lr);
+	//desplazamos ya que el 1 bit no nos importa
+	valor=valor>>1;
+
+	//aca se deberia restar -2048 para evitar el offset pero este da error por eso no se suma
+	// seguramente debido a que ya esta al limite el error de offset en el registro
+	offset->MPU6500_ACCELZ.MPU6500_int16=(offset->MPU6500_ACCELZ.MPU6500_int16)-2048;
+	resta=(int16_t)valor;
+	// restamos el offset de mpu6500 con el calculado
+	resta=resta-((offset->MPU6500_ACCELZ.MPU6500_int16));
+	// lo desplazamos por lo que se menciono antes
+	resta=resta<<1;
+	resta=resta|ValorTemp;
+	hr=(resta>>8)&0xFF;
+	lr=resta&0xFF;
 	MPU6500_Write_Reg(OFFSET_H_AZ, hr);
 	MPU6500_Write_Reg(OFFSET_L_AZ, lr);
 
@@ -206,16 +284,17 @@ MPU6500_status_e	MPU6500_Init(MPU6500_Init_Values_t * offset,uint8_t N,uint8_t d
  * @param	gConv:	Valor para la conversion segun lo ingresado en g al iniciar
  * @return	convDatos:	Regresar valores ya convertidos a una estructura
  */
-MPU6500_Init_float_t		MPU6500_Converter(MPU6500_Init_Values_t* raw,float dpsConv,float gConv)
+MPU6500_Init_float_t		MPU6500_Converter(MPU6500_Init_Values_t* raw)
 {
-	MPU6500_Init_float_t convDatos;
-	convDatos.MPU6500_floatAX=(raw->MPU6500_ACCELX.MPU6500_int16)/gConv;
-	convDatos.MPU6500_floatAY=(raw->MPU6500_ACCELY.MPU6500_int16)/gConv;
-	convDatos.MPU6500_floatAZ=(raw->MPU6500_ACCELZ.MPU6500_int16)/gConv;
 
-	convDatos.MPU6500_floatGX=(raw->MPU6500_GYROX.MPU6500_int16)/dpsConv;
-	convDatos.MPU6500_floatGY=(raw->MPU6500_GYROY.MPU6500_int16)/dpsConv;
-	convDatos.MPU6500_floatGZ=(raw->MPU6500_GYROZ.MPU6500_int16)/dpsConv;
+	MPU6500_Init_float_t convDatos;
+	convDatos.MPU6500_floatAX=(raw->MPU6500_ACCELX.MPU6500_int16)/ConvG;
+	convDatos.MPU6500_floatAY=(raw->MPU6500_ACCELY.MPU6500_int16)/ConvG;
+	convDatos.MPU6500_floatAZ=(raw->MPU6500_ACCELZ.MPU6500_int16)/ConvG;
+
+	convDatos.MPU6500_floatGX=(raw->MPU6500_GYROX.MPU6500_int16)/ConvDPS;
+	convDatos.MPU6500_floatGY=(raw->MPU6500_GYROY.MPU6500_int16)/ConvDPS;
+	convDatos.MPU6500_floatGZ=(raw->MPU6500_GYROZ.MPU6500_int16)/ConvDPS;
 
 	return convDatos;
 }

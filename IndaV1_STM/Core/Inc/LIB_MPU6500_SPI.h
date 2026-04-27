@@ -179,7 +179,7 @@ void		MPU6500_Read(MPU6500_Init_Values_t* valoresMPU);
 uint8_t 	MPU6500_Read_Reg(uint8_t Reg);
 void 		MPU6500_Write_Reg(uint8_t Reg,uint8_t value);
 void		MPU6500_Write(uint8_t Reg,uint8_t *value, uint8_t len);
-MPU6500_Init_float_t		MPU6500_Converter(MPU6500_Init_Values_t* raw,float dpsConv,float gConv);
+MPU6500_Init_float_t		MPU6500_Converter(MPU6500_Init_Values_t* raw);
 float		MPU6500_Pitch(MPU6500_Init_float_t* convPitch);
 float		MPU6500_Roll(MPU6500_Init_float_t* convRoll);
 void 		MPU6500_Filtro_Complementario(MPU6500_Init_float_t* data,float *anguloPitch,float *anguloRoll);
