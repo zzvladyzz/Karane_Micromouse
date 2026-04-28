@@ -31,6 +31,7 @@
 #include "LIB_MPU6500_SPI.h"
 #include "stdbool.h"
 #include "LIB_Motores.h"
+#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -177,7 +178,8 @@ int main(void)
 	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 
 */
-	  uint16_t adc2_val=0;
+
+	  /*uint16_t adc2_val=0;
 
 
 
@@ -218,9 +220,97 @@ int main(void)
 	sprintf(bufferTxt," \r\n");
 		HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 
-	HAL_Delay(500);
+	HAL_Delay(500);*/
 
 
+
+	  uint16_t val_B=0;
+	  uint16_t val_C=0;
+
+	  uint16_t val_A=0;
+	  uint16_t val_D=0;
+
+	  //irA
+	  HAL_GPIO_WritePin(IR1_TX_GPIO_Port, IR1_TX_Pin, GPIO_PIN_SET);
+	  HAL_Delay(1);
+	  val_A=(uint16_t)ADC_Read_Manual(&hadc2, 3);
+	  HAL_GPIO_WritePin(IR1_TX_GPIO_Port, IR1_TX_Pin, GPIO_PIN_RESET);
+	  HAL_Delay(50);
+	  //irD
+	  HAL_GPIO_WritePin(IR4_TX_GPIO_Port, IR4_TX_Pin, GPIO_PIN_SET);
+	  HAL_Delay(1);
+	  val_D=(uint16_t)ADC_Read_Manual(&hadc2, 0);
+	  HAL_GPIO_WritePin(IR4_TX_GPIO_Port, IR4_TX_Pin, GPIO_PIN_RESET);
+	  HAL_Delay(50);
+	  //irB
+	  HAL_GPIO_WritePin(IR2_TX_GPIO_Port, IR2_TX_Pin, GPIO_PIN_SET);
+	  HAL_Delay(1);
+	  val_B=(uint16_t)ADC_Read_Manual(&hadc2, 2);
+	  HAL_GPIO_WritePin(IR2_TX_GPIO_Port, IR2_TX_Pin, GPIO_PIN_RESET);
+	  HAL_Delay(50);
+
+	  //irC
+	  HAL_GPIO_WritePin(IR3_TX_GPIO_Port, IR3_TX_Pin, GPIO_PIN_SET);
+	  HAL_Delay(1);
+	  val_C=(uint16_t)ADC_Read_Manual(&hadc2, 1);
+	  HAL_GPIO_WritePin(IR3_TX_GPIO_Port, IR3_TX_Pin, GPIO_PIN_RESET);
+	  HAL_Delay(50);
+
+
+/*
+
+	  	sprintf(bufferTxt,"%d,%d\n",val_B,val_C);
+	  		  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+	  	HAL_Delay(100);*/
+
+
+	  	float val=2676.42*powf((float)val_A,-0.3902)-70.3445;
+	  	val+=1;
+	  	sprintf(bufferTxt,"A=%0.3f",val);
+	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+
+
+	  	//val=76032.88*powf((float)val_B,-1.0849);
+	  	val=20560.59*powf((float)val_B,-0.8696)+10.7348;
+	  	sprintf(bufferTxt,"	 B=%0.3f",val);
+	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+
+
+	  	//val=134070.5663*powf((float)val_C,-1.1064);
+	  	val=31275.7*powf((float)val_C,-0.8879)+6.8792;
+	  	sprintf(bufferTxt,"	 C=%0.3f",val);
+	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+
+
+	  	//val=8419.137*powf((float)val_D,-0.65345);
+	  	val=4738.58*powf((float)val_D,-0.5362)-22.3536;
+	  	sprintf(bufferTxt,"	 D=%0.3f\r\n",val);
+	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+	  	HAL_Delay(500);
+
+
+
+
+/*
+	  	HAL_GPIO_WritePin(IR1_TX_GPIO_Port, IR2_TX_Pin, GPIO_PIN_SET);
+	  		HAL_Delay(1);
+	  	adc2_val=(uint16_t)ADC_Read_Manual(&hadc2, 2);
+	  	sprintf(bufferTxt,"%d,",adc2_val);
+	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+	  	HAL_GPIO_WritePin(IR2_TX_GPIO_Port, IR2_TX_Pin, GPIO_PIN_RESET);
+	  	HAL_Delay(50);
+
+
+	  	HAL_GPIO_WritePin(IR3_TX_GPIO_Port, IR3_TX_Pin, GPIO_PIN_SET);
+	  		HAL_Delay(1);
+	  	adc2_val=(uint16_t)ADC_Read_Manual(&hadc2, 1);
+	  	sprintf(bufferTxt,"%d,",adc2_val);
+	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+	  	HAL_GPIO_WritePin(IR3_TX_GPIO_Port, IR3_TX_Pin, GPIO_PIN_RESET);
+	  		HAL_Delay(50);
+*/
+
+	  	HAL_Delay(500);
 
 
   }
