@@ -36,6 +36,24 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+
+typedef struct
+{
+	uint32_t debugEncA;
+	uint32_t debugEncB;
+	uint32_t debugTiempo;
+	uint16_t debugPWM;
+	float 	 Ax;
+	float 	 Ay;
+	float 	 Az;
+	float 	 Gx;
+	float 	 Gy;
+	float 	 Gz;
+
+
+}Debug_Datos;
+
+Debug_Datos debugDatos[200];
 Motores_Init Motor;
 MPU6500_Init_Values_t 	MPU6500_Datos; //Iniciamos donde se guardaran todos los datos a leer
 MPU6500_status_e	MPU6500_Status;
@@ -137,7 +155,87 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  HAL_Delay(2000);
 
+	  uint32_t tiempo_rampa=1500;
+uint32_t tiempo=HAL_GetTick();
+uint32_t tiempo_10ms=0;
+uint16_t pwmRampa=0;
+uint16_t k=2;
+uint16_t muestras=0;
+Motor.ENABLE=true;
+while((HAL_GetTick()-tiempo)<tiempo_rampa)
+{
+	if((HAL_GetTick()-tiempo_10ms)>10){
+
+		if ((HAL_GetTick()-tiempo)<(0.2*tiempo_rampa))
+		{
+			/*
+			 * pasos =0.2*tiempo_rampa/dt(10ms)=60pasos
+			 * k=(pwmObjetivo-pwmActual)/pasos
+			 * k=3.3
+			 * pwm=pwm+k
+			 */
+			pwmRampa=pwmRampa+k;
+		}
+		else if((HAL_GetTick()-tiempo)>(0.8*tiempo_rampa))
+		{
+			pwmRampa=pwmRampa-k;
+		}
+		else{
+			pwmRampa=pwmRampa;
+		}
+		Motor.PWM_ML=pwmRampa;
+		Motor.PWM_MR=pwmRampa;
+		PWM_Motores(&Motor);
+		debugDatos[muestras].debugTiempo=HAL_GetTick();
+		debugDatos[muestras].debugEncA=ticksD;
+		debugDatos[muestras].debugEncB=ticksI;
+		debugDatos[muestras].debugPWM=pwmRampa;
+		MPU6500();
+		debugDatos[muestras].Ax=MPU6500_Conv.MPU6500_floatAX;
+		debugDatos[muestras].Ay=MPU6500_Conv.MPU6500_floatAY;
+		debugDatos[muestras].Az=MPU6500_Conv.MPU6500_floatAZ;
+		debugDatos[muestras].Gx=MPU6500_Conv.MPU6500_floatGX;
+		debugDatos[muestras].Gy=MPU6500_Conv.MPU6500_floatGY;
+		debugDatos[muestras].Gz=MPU6500_Conv.MPU6500_floatGZ;
+
+		muestras++;
+		tiempo_10ms=HAL_GetTick();
+	}
+}
+HAL_Delay(2000);
+HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, 1);
+uint16_t adcPul=0;
+
+while(1)
+{
+	adcPul=(uint16_t)ADC_Read_Manual(&hadc1, 7);
+		if(adcPul<4065 && adcPul>4000)
+		{
+			break;
+		}
+}
+for (int var = 0; var < muestras; ++var) {
+	sprintf(bufferTxt,"%ld,%d,%0.2f,%0.2f,%0.2f",debugDatos[var].debugTiempo, debugDatos[var].debugPWM,debugDatos[var].Ax,debugDatos[var].Ay,debugDatos[var].Az);
+	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+	sprintf(bufferTxt,",%0.2f,%0.2f,%0.2f\n",debugDatos[var].Gx,debugDatos[var].Gy,debugDatos[var].Gz);
+		HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+
+HAL_Delay(10);
+
+}
+HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, 0);
+
+ticksD=0;
+ticksI=0;
+for (int var = 0; var < muestras; ++var) {
+	debugDatos[var].debugTiempo=0;
+	debugDatos[var].debugEncA=0;
+	debugDatos[var].debugEncB=0;
+	debugDatos[var].debugPWM=0;
+
+}
 
 
 /*
@@ -222,7 +320,7 @@ int main(void)
 
 	HAL_Delay(500);*/
 
-
+/*
 
 	  uint16_t val_B=0;
 	  uint16_t val_C=0;
@@ -256,13 +354,13 @@ int main(void)
 	  HAL_GPIO_WritePin(IR3_TX_GPIO_Port, IR3_TX_Pin, GPIO_PIN_RESET);
 	  HAL_Delay(50);
 
-
+*/
 /*
 
 	  	sprintf(bufferTxt,"%d,%d\n",val_B,val_C);
 	  		  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 	  	HAL_Delay(100);*/
-
+/*
 
 	  	float val=2676.42*powf((float)val_A,-0.3902)-70.3445;
 	  	val+=1;
@@ -286,7 +384,7 @@ int main(void)
 	  	val=4738.58*powf((float)val_D,-0.5362)-22.3536;
 	  	sprintf(bufferTxt,"	 D=%0.3f\r\n",val);
 	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-	  	HAL_Delay(500);
+	  	HAL_Delay(500);*/
 
 
 
@@ -459,7 +557,7 @@ void MPU6500()
 {
 	MPU6500_Read(&MPU6500_Datos);
 	MPU6500_Conv=MPU6500_Converter(&MPU6500_Datos);
-
+/*
 	sprintf(bufferTxt," Gx= %.2f ",MPU6500_Conv.MPU6500_floatGX);
 	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 
@@ -478,7 +576,7 @@ void MPU6500()
 	sprintf(bufferTxt," Az= %.2f \r\n",MPU6500_Conv.MPU6500_floatAZ);
 	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 
-	HAL_Delay(200);
+	HAL_Delay(200);*/
 }
 void DEBUG_Encoder()
 {
