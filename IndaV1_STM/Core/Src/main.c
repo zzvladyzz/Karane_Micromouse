@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "dma.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -91,6 +92,8 @@ int32_t contI=0;
 
 char bufferTxt[30];
 
+uint32_t ADC_Sensores[4];
+uint32_t ADC_IR[4];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -138,12 +141,14 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_SPI3_Init();
   MX_USART3_UART_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
   MX_TIM1_Init();
   MX_TIM3_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
   Inicializar_Sistema();
   /* USER CODE END 2 */
@@ -155,7 +160,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  HAL_Delay(2000);
+	/*  HAL_Delay(2000);
 
 	  uint32_t tiempo_rampa=1500;
 uint32_t tiempo=HAL_GetTick();
@@ -169,14 +174,14 @@ while((HAL_GetTick()-tiempo)<tiempo_rampa)
 	if((HAL_GetTick()-tiempo_10ms)>10){
 
 		if ((HAL_GetTick()-tiempo)<(0.2*tiempo_rampa))
-		{
+		{*/
 			/*
 			 * pasos =0.2*tiempo_rampa/dt(10ms)=60pasos
 			 * k=(pwmObjetivo-pwmActual)/pasos
 			 * k=3.3
 			 * pwm=pwm+k
 			 */
-			pwmRampa=pwmRampa+k;
+		/*	pwmRampa=pwmRampa+k;
 		}
 		else if((HAL_GetTick()-tiempo)>(0.8*tiempo_rampa))
 		{
@@ -236,89 +241,7 @@ for (int var = 0; var < muestras; ++var) {
 	debugDatos[var].debugPWM=0;
 
 }
-
-
-/*
-
-	HAL_ADC_Start(&hadc1);
-
-	    // Esperar con un timeout prudente (10ms es suficiente)
-	    if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) {
-	        adc2_val = HAL_ADC_GetValue(&hadc1);
-
-		    // 4. Parar el ADC para liberar el secuenciador
-		    HAL_ADC_Stop(&hadc1);
-	    }*/
-/*		adc2_val=(uint16_t)ADC_Read_Manual(&hadc1, 4);
-		sprintf(bufferTxt," BATERIA= %d ",adc2_val);
-		HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-
-
-		adc2_val=(uint16_t)ADC_Read_Manual(&hadc1, 5);
-		sprintf(bufferTxt," S_MD= %d ",adc2_val);
-		HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-
-
-		adc2_val=(uint16_t)ADC_Read_Manual(&hadc1, 6);
-		sprintf(bufferTxt," S_MI= %d ",adc2_val);
-		HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-
-	adc2_val=(uint16_t)ADC_Read_Manual(&hadc1, 7);
-	if(adc2_val<4065 && adc2_val>4000)
-	{
-		ticksD=0;
-		ticksI=0;
-		contD=0;
-		contI=0;
-		 __HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_4,0);
-	}
-	sprintf(bufferTxt," PULSADOR= %d \r\n",adc2_val);
-	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-
 */
-
-	  /*uint16_t adc2_val=0;
-
-
-
-	HAL_GPIO_WritePin(IR1_TX_GPIO_Port, IR1_TX_Pin, GPIO_PIN_SET);
-	HAL_Delay(1);
-	 adc2_val=(uint16_t)ADC_Read_Manual(&hadc2, 3);
-
-	sprintf(bufferTxt," ir1= %d ",adc2_val);
-	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(IR1_TX_GPIO_Port, IR1_TX_Pin, GPIO_PIN_RESET);
-	HAL_Delay(50);
-
-
-	HAL_GPIO_WritePin(IR1_TX_GPIO_Port, IR2_TX_Pin, GPIO_PIN_SET);
-		HAL_Delay(1);
-	adc2_val=(uint16_t)ADC_Read_Manual(&hadc2, 2);
-	sprintf(bufferTxt," IR2= %d ",adc2_val);
-	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(IR2_TX_GPIO_Port, IR2_TX_Pin, GPIO_PIN_RESET);
-	HAL_Delay(50);
-
-
-	HAL_GPIO_WritePin(IR3_TX_GPIO_Port, IR3_TX_Pin, GPIO_PIN_SET);
-		HAL_Delay(1);
-	adc2_val=(uint16_t)ADC_Read_Manual(&hadc2, 1);
-	sprintf(bufferTxt," IR3= %d ",adc2_val);
-	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(IR3_TX_GPIO_Port, IR3_TX_Pin, GPIO_PIN_RESET);
-		HAL_Delay(50);
-
-		HAL_GPIO_WritePin(IR4_TX_GPIO_Port, IR4_TX_Pin, GPIO_PIN_SET);
-			HAL_Delay(1);
-	adc2_val=(uint16_t)ADC_Read_Manual(&hadc2, 0);
-	sprintf(bufferTxt," IR4= %d ",adc2_val);
-	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(IR4_TX_GPIO_Port, IR4_TX_Pin, GPIO_PIN_RESET);
-
-	sprintf(bufferTxt," \r\n");
-		HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-
-	HAL_Delay(500);*/
 
 /*
 
@@ -389,26 +312,16 @@ for (int var = 0; var < muestras; ++var) {
 
 
 
-/*
-	  	HAL_GPIO_WritePin(IR1_TX_GPIO_Port, IR2_TX_Pin, GPIO_PIN_SET);
-	  		HAL_Delay(1);
-	  	adc2_val=(uint16_t)ADC_Read_Manual(&hadc2, 2);
-	  	sprintf(bufferTxt,"%d,",adc2_val);
+
+	for (int var = 0; var < 4; ++var) {
+
+	  	sprintf(bufferTxt,"A%d=%ld, ",var,ADC_IR[var]);
 	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-	  	HAL_GPIO_WritePin(IR2_TX_GPIO_Port, IR2_TX_Pin, GPIO_PIN_RESET);
-	  	HAL_Delay(50);
+	}
 
-
-	  	HAL_GPIO_WritePin(IR3_TX_GPIO_Port, IR3_TX_Pin, GPIO_PIN_SET);
-	  		HAL_Delay(1);
-	  	adc2_val=(uint16_t)ADC_Read_Manual(&hadc2, 1);
-	  	sprintf(bufferTxt,"%d,",adc2_val);
+  	sprintf(bufferTxt,"\r\n");
 	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-	  	HAL_GPIO_WritePin(IR3_TX_GPIO_Port, IR3_TX_Pin, GPIO_PIN_RESET);
-	  		HAL_Delay(50);
-*/
-
-	  	HAL_Delay(500);
+HAL_Delay(500);
 
 
   }
@@ -521,7 +434,91 @@ void Inicializar_Sistema()
 	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 	HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
 
+HAL_ADC_Start_DMA(&hadc2, ADC_Sensores, 4);
+	HAL_TIM_Base_Start_IT(&htim4);
 
+}
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+    if (htim->Instance == TIM4) {
+
+    	static volatile uint16_t Timer_20ms=0;
+
+    	static uint8_t paso = 0;
+
+    	if(Timer_20ms++>334)
+    	{
+    		//ADC2->CR2|=ADC_CR2_SWSTART;
+    		//LED1_GPIO_Port->ODR^=LED1_Pin;
+    		Timer_20ms=0;
+    	}
+       	GPIOC->BSRR=(uint32_t)(IR1_TX_Pin|IR2_TX_Pin|IR3_TX_Pin|IR4_TX_Pin)<<16;
+
+
+
+        IR1_TX_GPIO_Port->BSRR = (uint32_t)IR1_TX_Pin;
+
+        for (int var = 0; var < 200; ++var) {
+			__NOP();
+		}
+       	// 1. Asegurar que el ADC esté encendido
+       	if (!(ADC1->CR2 & ADC_CR2_ADON)) ADC1->CR2 |= ADC_CR2_ADON;
+
+       	// 2. Limpiar banderas y disparar
+       	ADC1->SR = 0;
+       	ADC1->CR2 |= ADC_CR2_SWSTART;
+
+       	// 3. Verificar si el ADC aceptó el disparo
+       	// Si el reloj del ADC es incorrecto, SWSTART se queda en 0
+       	while(!(ADC1->SR & ADC_SR_EOC));
+
+       	ADC_IR[0] = ADC1->DR;
+        IR1_TX_GPIO_Port->BSRR = (uint32_t)IR1_TX_Pin<<16;
+ /*
+ *
+ * void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+    if (htim->Instance == TIM4) {
+        static uint8_t canal = 0; // Para saber qué pulso dar
+        static uint16_t resultados_adc[4];
+
+        // 1. APAGAR PULSOS ANTERIORES (PC0-PC3)
+        GPIOC->BSRR = 0x000F0000;
+
+        // 2. ACTIVAR PULSO DEL CANAL ACTUAL
+        GPIOC->BSRR = (1 << canal);
+
+        // 3. PEQUEÑA ESPERA DE ESTABILIZACIÓN (Opcional)
+        // A 168MHz, 20 NOPs son aprox 120 nanosegundos
+        __NOP(); __NOP(); __NOP(); __NOP();
+
+        // 4. DISPARAR CONVERSIÓN
+        // Al estar en SCAN, el ADC sabe qué Rank (canal) sigue
+        ADC1->CR2 |= ADC_CR2_SWSTART;
+
+        // 5. ESPERAR FINALIZACIÓN (Polleo del bit EOC)
+        // A 168MHz esto es casi instantáneo
+        while(!(ADC1->SR & ADC_SR_EOC));
+
+        // 6. LEER Y GUARDAR EL DATO
+        resultados_adc[canal] = ADC1->DR;
+
+        // 7. BAJAR EL PULSO (Opcional si quieres pulso corto)
+        // GPIOC->BSRR = (1 << canal) << 16;
+
+        // 8. PREPARAR SIGUIENTE CANAL
+        canal++;
+        if (canal >= 4) {
+            canal = 0; // El ADC también volverá al Rank 1 automáticamente
+        }
+
+        // --- AQUÍ PUEDES METER TU LÓGICA DE LOS 20ms PARA EL ADC2 ---
+    }
+}
+ *
+ */
+
+
+
+    }
 }
 
 uint32_t ADC_Read_Manual(ADC_HandleTypeDef *hadc, uint32_t channel) {

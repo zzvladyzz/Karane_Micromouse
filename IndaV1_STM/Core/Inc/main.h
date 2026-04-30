@@ -77,10 +77,10 @@ void Error_Handler(void);
 #define IR1_RX_GPIO_Port GPIOA
 #define VATT_Pin GPIO_PIN_4
 #define VATT_GPIO_Port GPIOA
-#define SENSOR_MD_Pin GPIO_PIN_5
-#define SENSOR_MD_GPIO_Port GPIOA
-#define SENSOR_MI_Pin GPIO_PIN_6
-#define SENSOR_MI_GPIO_Port GPIOA
+#define A_MD_Pin GPIO_PIN_5
+#define A_MD_GPIO_Port GPIOA
+#define A_MI_Pin GPIO_PIN_6
+#define A_MI_GPIO_Port GPIOA
 #define PULSADOR_Pin GPIO_PIN_7
 #define PULSADOR_GPIO_Port GPIOA
 #define LED2_Pin GPIO_PIN_4
