@@ -54,11 +54,27 @@ typedef struct
 
 }Debug_Datos;
 
+typedef struct
+{
+	float	kp;
+	float	ki;
+	float	kd;
+	float	ultimoError;
+	float	integral;
+	float	winup;
+	float	PWM_Maximo;
+
+}PID;
+
 Debug_Datos debugDatos[200];
 Motores_Init Motor;
 MPU6500_Init_Values_t 	MPU6500_Datos; //Iniciamos donde se guardaran todos los datos a leer
 MPU6500_status_e	MPU6500_Status;
 MPU6500_Init_float_t	MPU6500_Conv;
+
+
+PID TestPID={0.8,0.1,0.5 ,0,0,50,100};
+PID TestPID2={1.2,0,0 ,0,0,50,100};
 
 /* USER CODE END PTD */
 
@@ -94,6 +110,18 @@ char bufferTxt[30];
 
 uint32_t ADC_Sensores[4];
 uint32_t ADC_IR[4];
+float    ADC_Distancia[4];
+const uint32_t ADC_CanalTX[4]={IR1_TX_Pin,IR2_TX_Pin,IR3_TX_Pin,IR4_TX_Pin};
+const uint32_t ADC_CanalRX[4]={3,2,1,0};
+const uint8_t ADC_Secuencia[4]={0,2,1,3};
+const float ADC_Const_a[4]={982.65,		1232.95,	1604.23	,	826.01};
+const float ADC_Const_b[4]={-0.2653,	-0.5104,	-0.4915,	-0.292};
+const float ADC_Const_c[4]={-79.8326,	3.9067	,	-5.3567	,	-46.3869};
+
+bool flagDatos_20ms=false;
+bool flagPID_3ms=false;
+bool flagDistanciaIR=false;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -104,6 +132,8 @@ void Inicializar_Sistema();
 void MPU6500();
 uint32_t ADC_Read_Manual(ADC_HandleTypeDef *hadc, uint32_t channel);
 void DEBUG_Encoder();
+float funcion_calcularPID(PID* pid,int16_t setpoint,int16_t actual,float dt);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -243,85 +273,99 @@ for (int var = 0; var < muestras; ++var) {
 }
 */
 
+if(flagDistanciaIR==true){
+		for (int var = 0; var < 4; ++var) {
+			ADC_Distancia[var]=ADC_Const_a[var]*powf((float)ADC_IR[var],ADC_Const_b[var])+ADC_Const_c[var];
+		}
+	flagDistanciaIR=false;
+  }
+
+static float voltaje=0;
+static uint8_t pulsador=0;
+if (flagDatos_20ms==true)
+{
+	voltaje=(ADC_Sensores[0]*3.35)/4095;
+	voltaje*=2.74074;
+
+	if (ADC_Sensores[3]>3950)pulsador=1;
+		else if (ADC_Sensores[3]>2650 && ADC_Sensores[3]<2850)pulsador=2;
+			else if (ADC_Sensores[3]>1000 && ADC_Sensores[3]<1200)pulsador=3;
+	flagDatos_20ms=false;
+}
+static float error=0;
+
+static float pwmgiro,pwmdistancia=0;
+
+if(flagPID_3ms==true)
+{
+	MPU6500_Read(&MPU6500_Datos);
+	MPU6500_Conv=MPU6500_Converter(&MPU6500_Datos);
+
+	/// test con 2 pid para mantener la distancia contra la pared
+
+	/*error=(((ADC_Distancia[0]+ADC_Distancia[3])/2)-80);
+	if(ADC_Distancia[0]>200 || ADC_Distancia[3]>200)
+	{
+		pwmgiro=funcion_calcularPID(&TestPID,0 , 0, 0.02);
+		pwmdistancia=-funcion_calcularPID(&TestPID2,0, 0, 0.02);
+	}
+	else{
+		pwmgiro=funcion_calcularPID(&TestPID,0 , ADC_Distancia[0]-ADC_Distancia[3], 0.02);
+		    pwmdistancia=-funcion_calcularPID(&TestPID2,0, error, 0.02);
+	}*/
+
+	if(MPU6500_Conv.MPU6500_floatGZ<0.25 && MPU6500_Conv.MPU6500_floatGZ>-0.25)
+	{
+		MPU6500_Conv.MPU6500_floatGZ=0;
+	}
+	error=error+MPU6500_Conv.MPU6500_floatGZ*0.003;
+
+	pwmgiro=funcion_calcularPID(&TestPID,90 ,error , 0.02);
+	Motor.ENABLE=true;
+	Motor.PWM_MR=(int16_t)(pwmdistancia+pwmgiro);
+	Motor.PWM_ML=(int16_t)(pwmdistancia-pwmgiro);
+	PWM_Motores(&Motor);
+
+flagPID_3ms=false;
+}
+static uint32_t tiempo=0;
+static uint16_t sumador_reset_error=0;
+if(sumador_reset_error>60)
+{
+	error=0;
+	sumador_reset_error=0;
+}
+if((HAL_GetTick()-tiempo)>500)
+{sumador_reset_error++;
 /*
-
-	  uint16_t val_B=0;
-	  uint16_t val_C=0;
-
-	  uint16_t val_A=0;
-	  uint16_t val_D=0;
-
-	  //irA
-	  HAL_GPIO_WritePin(IR1_TX_GPIO_Port, IR1_TX_Pin, GPIO_PIN_SET);
-	  HAL_Delay(1);
-	  val_A=(uint16_t)ADC_Read_Manual(&hadc2, 3);
-	  HAL_GPIO_WritePin(IR1_TX_GPIO_Port, IR1_TX_Pin, GPIO_PIN_RESET);
-	  HAL_Delay(50);
-	  //irD
-	  HAL_GPIO_WritePin(IR4_TX_GPIO_Port, IR4_TX_Pin, GPIO_PIN_SET);
-	  HAL_Delay(1);
-	  val_D=(uint16_t)ADC_Read_Manual(&hadc2, 0);
-	  HAL_GPIO_WritePin(IR4_TX_GPIO_Port, IR4_TX_Pin, GPIO_PIN_RESET);
-	  HAL_Delay(50);
-	  //irB
-	  HAL_GPIO_WritePin(IR2_TX_GPIO_Port, IR2_TX_Pin, GPIO_PIN_SET);
-	  HAL_Delay(1);
-	  val_B=(uint16_t)ADC_Read_Manual(&hadc2, 2);
-	  HAL_GPIO_WritePin(IR2_TX_GPIO_Port, IR2_TX_Pin, GPIO_PIN_RESET);
-	  HAL_Delay(50);
-
-	  //irC
-	  HAL_GPIO_WritePin(IR3_TX_GPIO_Port, IR3_TX_Pin, GPIO_PIN_SET);
-	  HAL_Delay(1);
-	  val_C=(uint16_t)ADC_Read_Manual(&hadc2, 1);
-	  HAL_GPIO_WritePin(IR3_TX_GPIO_Port, IR3_TX_Pin, GPIO_PIN_RESET);
-	  HAL_Delay(50);
-
+	sprintf(bufferTxt,"vol=%0.2f, ",voltaje);
+		HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+		sprintf(bufferTxt,"pulso=%d ",pulsador);
+			HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 */
-/*
-
-	  	sprintf(bufferTxt,"%d,%d\n",val_B,val_C);
-	  		  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-	  	HAL_Delay(100);*/
-/*
-
-	  	float val=2676.42*powf((float)val_A,-0.3902)-70.3445;
-	  	val+=1;
-	  	sprintf(bufferTxt,"A=%0.3f",val);
-	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-
-
-	  	//val=76032.88*powf((float)val_B,-1.0849);
-	  	val=20560.59*powf((float)val_B,-0.8696)+10.7348;
-	  	sprintf(bufferTxt,"	 B=%0.3f",val);
-	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-
-
-	  	//val=134070.5663*powf((float)val_C,-1.1064);
-	  	val=31275.7*powf((float)val_C,-0.8879)+6.8792;
-	  	sprintf(bufferTxt,"	 C=%0.3f",val);
-	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-
-
-	  	//val=8419.137*powf((float)val_D,-0.65345);
-	  	val=4738.58*powf((float)val_D,-0.5362)-22.3536;
-	  	sprintf(bufferTxt,"	 D=%0.3f\r\n",val);
-	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-	  	HAL_Delay(500);*/
-
-
-
-
-
+	/*
 	for (int var = 0; var < 4; ++var) {
+		sprintf(bufferTxt,"A%d=%0.2f, ",var,ADC_Distancia[var]);
+			HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 
-	  	sprintf(bufferTxt,"A%d=%ld, ",var,ADC_IR[var]);
-	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 	}
 
-  	sprintf(bufferTxt,"\r\n");
-	  	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-HAL_Delay(500);
+*/
+/*	sprintf(bufferTxt,"A=%0.2f, ",ADC_Distancia[0]);
+	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+	sprintf(bufferTxt,"D=%0.2f, ",ADC_Distancia[3]);
+		HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+*/
+	sprintf(bufferTxt,"pwmD=%0.2f, ",error);
+	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+	sprintf(bufferTxt,"pwmG=%0.2f, ",pwmgiro);
+		HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+
+	//MPU6500();
+sprintf(bufferTxt,"\r\n");
+HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
+tiempo=HAL_GetTick();
+}
 
 
   }
@@ -385,19 +429,19 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		estadoAnterior_L=bitStatusL;
 		}
 	if(GPIO_Pin==Enc_I_A_Pin||GPIO_Pin==Enc_I_B_Pin)
-		{
+	{
 		uint8_t bitStatusR=((HAL_GPIO_ReadPin(Enc_I_A_GPIO_Port, Enc_I_A_Pin))?2:0) | ((HAL_GPIO_ReadPin(Enc_I_B_GPIO_Port, Enc_I_B_Pin))?1:0);
 		ticksI+=(estadoTabla[((estadoAnterior_R<<2)|bitStatusR)]);
 		estadoAnterior_R=bitStatusR;
-		}
+	}
 	if(GPIO_Pin==Enc_D_C_Pin)
 	{
 		contD++;
 	}
 	if(GPIO_Pin==Enc_I_C_Pin)
-		{
-			contI++;
-		}
+	{
+		contI++;
+	}
 }
 
 void Inicializar_Sistema()
@@ -419,7 +463,7 @@ void Inicializar_Sistema()
 	HAL_GPIO_WritePin(IR4_TX_GPIO_Port, IR4_TX_Pin, GPIO_PIN_RESET);
 
 
-	HAL_GPIO_WritePin(LED1_GPIO_Port	, LED1_Pin,GPIO_PIN_SET);
+	LED1_GPIO_Port->BSRR=(uint32_t)LED1_Pin;
 	HAL_Delay(1000);
 	MPU6500_Status=MPU6500_Init(&MPU6500_Datos,50,DPS500,G2);
 	if (MPU6500_Status==MPU6500_fail) {
@@ -432,9 +476,8 @@ void Inicializar_Sistema()
 	}
 	sprintf(bufferTxt," Exito al iniciar MPU\r\n");
 	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
-
-HAL_ADC_Start_DMA(&hadc2, ADC_Sensores, 4);
+	LED1_GPIO_Port->BSRR=(uint32_t)LED1_Pin<<16;
+	HAL_ADC_Start_DMA(&hadc2, ADC_Sensores, 4);
 	HAL_TIM_Base_Start_IT(&htim4);
 
 }
@@ -442,24 +485,35 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim->Instance == TIM4) {
 
     	static volatile uint16_t Timer_20ms=0;
-
-    	static uint8_t paso = 0;
+    	static volatile uint16_t Timer_3ms=0;
+    	static uint8_t canal = 0;
 
     	if(Timer_20ms++>334)
     	{
-    		//ADC2->CR2|=ADC_CR2_SWSTART;
-    		//LED1_GPIO_Port->ODR^=LED1_Pin;
+    		///habilitar DMA
+    		ADC2->CR2|=ADC_CR2_SWSTART;
+    		flagDatos_20ms=true;
     		Timer_20ms=0;
     	}
+    	if(Timer_3ms++>50)
+    	{
+    	flagPID_3ms=true;
+    	Timer_3ms=0;
+    	}
+
        	GPIOC->BSRR=(uint32_t)(IR1_TX_Pin|IR2_TX_Pin|IR3_TX_Pin|IR4_TX_Pin)<<16;
 
 
-
-        IR1_TX_GPIO_Port->BSRR = (uint32_t)IR1_TX_Pin;
+        GPIOC->BSRR = ADC_CanalTX[ADC_Secuencia[canal]];
+        // 2. CAMBIAR CANAL EN EL ADC
+           // Escribimos en SQR3 (los bits 0-4 definen el Rank 1)
+           // Esto le dice al ADC: "En el próximo SWSTART, lee este canal específico"
+        ADC1->SQR3 = ADC_CanalRX[ADC_Secuencia[canal]];
 
         for (int var = 0; var < 200; ++var) {
 			__NOP();
 		}
+
        	// 1. Asegurar que el ADC esté encendido
        	if (!(ADC1->CR2 & ADC_CR2_ADON)) ADC1->CR2 |= ADC_CR2_ADON;
 
@@ -471,90 +525,26 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
        	// Si el reloj del ADC es incorrecto, SWSTART se queda en 0
        	while(!(ADC1->SR & ADC_SR_EOC));
 
-       	ADC_IR[0] = ADC1->DR;
-        IR1_TX_GPIO_Port->BSRR = (uint32_t)IR1_TX_Pin<<16;
- /*
- *
- * void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    if (htim->Instance == TIM4) {
-        static uint8_t canal = 0; // Para saber qué pulso dar
-        static uint16_t resultados_adc[4];
+       	ADC_IR[ADC_Secuencia[canal]] = ADC1->DR;
 
-        // 1. APAGAR PULSOS ANTERIORES (PC0-PC3)
-        GPIOC->BSRR = 0x000F0000;
+       	canal++;
+       	if (canal>3) {
+       		flagDistanciaIR=true;
+		canal=0;
+		}
 
-        // 2. ACTIVAR PULSO DEL CANAL ACTUAL
-        GPIOC->BSRR = (1 << canal);
+    	GPIOC->BSRR=(uint32_t)(IR1_TX_Pin|IR2_TX_Pin|IR3_TX_Pin|IR4_TX_Pin)<<16;
 
-        // 3. PEQUEÑA ESPERA DE ESTABILIZACIÓN (Opcional)
-        // A 168MHz, 20 NOPs son aprox 120 nanosegundos
-        __NOP(); __NOP(); __NOP(); __NOP();
-
-        // 4. DISPARAR CONVERSIÓN
-        // Al estar en SCAN, el ADC sabe qué Rank (canal) sigue
-        ADC1->CR2 |= ADC_CR2_SWSTART;
-
-        // 5. ESPERAR FINALIZACIÓN (Polleo del bit EOC)
-        // A 168MHz esto es casi instantáneo
-        while(!(ADC1->SR & ADC_SR_EOC));
-
-        // 6. LEER Y GUARDAR EL DATO
-        resultados_adc[canal] = ADC1->DR;
-
-        // 7. BAJAR EL PULSO (Opcional si quieres pulso corto)
-        // GPIOC->BSRR = (1 << canal) << 16;
-
-        // 8. PREPARAR SIGUIENTE CANAL
-        canal++;
-        if (canal >= 4) {
-            canal = 0; // El ADC también volverá al Rank 1 automáticamente
-        }
-
-        // --- AQUÍ PUEDES METER TU LÓGICA DE LOS 20ms PARA EL ADC2 ---
-    }
-}
- *
- */
 
 
 
     }
 }
 
-uint32_t ADC_Read_Manual(ADC_HandleTypeDef *hadc, uint32_t channel) {
-    ADC_ChannelConfTypeDef sConfig = {0};
-    uint32_t result = 0;
-
-    // 1. Configurar el canal específico en la posición 1
-    sConfig.Channel = channel;
-    sConfig.Rank = 1;
-    // Aumenta el tiempo de muestreo si lees 0 o valores inestables
-    sConfig.SamplingTime = ADC_SAMPLETIME_56CYCLES;
-
-    // 2. Aplicar configuración
-    if (HAL_ADC_ConfigChannel(hadc, &sConfig) != HAL_OK) {
-        return 0; // Error de configuración
-    }
-
-    // 3. Ciclo de conversión
-    HAL_ADC_Start(hadc);
-
-    // Esperar con un timeout prudente (10ms es suficiente)
-    if (HAL_ADC_PollForConversion(hadc, 10) == HAL_OK) {
-        result = HAL_ADC_GetValue(hadc);
-    }
-
-    // 4. Parar el ADC para liberar el secuenciador
-    HAL_ADC_Stop(hadc);
-
-    return result;
-}
 
 void MPU6500()
 {
-	MPU6500_Read(&MPU6500_Datos);
-	MPU6500_Conv=MPU6500_Converter(&MPU6500_Datos);
-/*
+
 	sprintf(bufferTxt," Gx= %.2f ",MPU6500_Conv.MPU6500_floatGX);
 	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 
@@ -573,7 +563,6 @@ void MPU6500()
 	sprintf(bufferTxt," Az= %.2f \r\n",MPU6500_Conv.MPU6500_floatAZ);
 	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 
-	HAL_Delay(200);*/
 }
 void DEBUG_Encoder()
 {
@@ -589,6 +578,32 @@ void DEBUG_Encoder()
 		sprintf(bufferTxt," contD= %ld \r\n",contD);
 	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 	  	HAL_Delay(300);
+}
+/**
+ * @brief PID para los motores
+ * @param PID: se debe mandar una estructura con los datos del pid a controlar
+ * @paran setpoint: valor a cual se quiere llegar
+ * @param actual: valor leido por los sensores
+ * @param dt: Tiempo de muestreo segun timer puede variar
+ */
+float funcion_calcularPID(PID* pid,int16_t setpoint,int16_t actual,float dt)
+{
+	float error=(float)(setpoint-actual);
+	float P=error*pid->kp;
+
+	pid->integral=pid->integral+error;
+	if(pid->integral>(pid->winup))pid->integral=(pid->winup);
+	if(pid->integral<-(pid->winup))pid->integral=-(pid->winup);
+
+	float I=pid->ki*pid->integral;
+
+	float D=pid->kd*(error-pid->ultimoError);
+	pid->ultimoError=error;
+
+	float PIDout=P+I+D;
+	if(PIDout>(pid->PWM_Maximo))PIDout=(pid->PWM_Maximo);
+	if(PIDout<-(pid->PWM_Maximo))PIDout=-(pid->PWM_Maximo);
+	return PIDout;
 }
 
 /* USER CODE END 4 */

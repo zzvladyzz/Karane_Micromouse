@@ -27,7 +27,6 @@ void	MPU6500_Read(MPU6500_Init_Values_t* valoresMPU){
 	HAL_SPI_Transmit(&SPI_PORT, &Reg, 1, HAL_MAX_DELAY);
 	HAL_SPI_Receive(&SPI_PORT,&Val[0],6, HAL_MAX_DELAY);
 	HAL_GPIO_WritePin(SPI_PORT_NSS, SPI_PIN_NSS, 1);
-	HAL_Delay(1);
 	valoresMPU->MPU6500_ACCELX.MPU6500_uint8[1]=Val[0];
 	valoresMPU->MPU6500_ACCELX.MPU6500_uint8[0]=Val[1];
 	valoresMPU->MPU6500_ACCELY.MPU6500_uint8[1]=Val[2];
@@ -40,7 +39,6 @@ void	MPU6500_Read(MPU6500_Init_Values_t* valoresMPU){
 	HAL_SPI_Transmit(&SPI_PORT, &Reg, 1, HAL_MAX_DELAY);
 	HAL_SPI_Receive(&SPI_PORT,&Val[0],6, HAL_MAX_DELAY);
 	HAL_GPIO_WritePin(SPI_PORT_NSS, SPI_PIN_NSS, 1);
-	HAL_Delay(1);
 	/**
 	 * 	@note	Al usar unio para mover datos y convertirlos automaticamente los DATOS MSB se encuentran
 	 * 			en la posicion [1] y los DATOS LSB en la posicion LSB
@@ -77,7 +75,6 @@ void 	MPU6500_Write_Reg(uint8_t Reg,uint8_t value){
 	HAL_SPI_Transmit(&SPI_PORT, &Reg, 1, HAL_MAX_DELAY);
 	HAL_SPI_Transmit(&SPI_PORT,&value, 1, HAL_MAX_DELAY);
 	HAL_GPIO_WritePin(SPI_PORT_NSS, SPI_PIN_NSS, 1);
-	HAL_Delay(1);
 }
 
 /**
@@ -92,7 +89,6 @@ void	MPU6500_Write(uint8_t Reg,uint8_t* value, uint8_t  len){
 	HAL_SPI_Transmit(&SPI_PORT, &Reg, 1, HAL_MAX_DELAY);
 	HAL_SPI_Transmit(&SPI_PORT, value, len, HAL_MAX_DELAY);
 	HAL_GPIO_WritePin(SPI_PORT_NSS, SPI_PIN_NSS, 1);
-	HAL_Delay(1);
 }
 
 /**
@@ -233,7 +229,7 @@ MPU6500_status_e	MPU6500_Init(MPU6500_Init_Values_t * offset,uint8_t N,uint8_t d
 
 	//aca se deberia restar -2048 para evitar el offset pero este da error por eso no se suma
 	// seguramente debido a que ya esta al limite el error de offset en el registro
-	offset->MPU6500_ACCELZ.MPU6500_int16=(offset->MPU6500_ACCELZ.MPU6500_int16)-2048;
+	offset->MPU6500_ACCELZ.MPU6500_int16=(offset->MPU6500_ACCELZ.MPU6500_int16)-2000;//2048;
 	resta=(int16_t)valor;
 	// restamos el offset de mpu6500 con el calculado
 	resta=resta-((offset->MPU6500_ACCELZ.MPU6500_int16));
