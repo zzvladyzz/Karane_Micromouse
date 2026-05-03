@@ -174,7 +174,7 @@ typedef enum{MPU6500_ok,MPU6500_fail}MPU6500_status_e;
 
 /*	Funciones para el MPU	*/
 
-MPU6500_status_e 		MPU6500_Init(MPU6500_Init_Values_t* offset,uint8_t N,uint8_t dps,uint8_t g);
+MPU6500_status_e 		MPU6500_Init(MPU6500_Init_Values_t* offset,uint16_t N,uint16_t dps,uint16_t g);
 void		MPU6500_Read(MPU6500_Init_Values_t* valoresMPU);
 uint8_t 	MPU6500_Read_Reg(uint8_t Reg);
 void 		MPU6500_Write_Reg(uint8_t Reg,uint8_t value);

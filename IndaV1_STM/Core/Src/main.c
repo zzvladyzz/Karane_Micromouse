@@ -80,7 +80,7 @@ PID TestPID2={1.2,0,0 ,0,0,50,100};
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define Umbral_Gyro 0.6
 
 /* USER CODE END PD */
 
@@ -314,14 +314,22 @@ if(flagPID_3ms==true)
 		    pwmdistancia=-funcion_calcularPID(&TestPID2,0, error, 0.02);
 	}*/
 
-	if(MPU6500_Conv.MPU6500_floatGZ<0.25 && MPU6500_Conv.MPU6500_floatGZ>-0.25)
+	if(MPU6500_Conv.MPU6500_floatGZ<Umbral_Gyro && MPU6500_Conv.MPU6500_floatGZ>-Umbral_Gyro)
 	{
 		MPU6500_Conv.MPU6500_floatGZ=0;
 	}
+	if(MPU6500_Conv.MPU6500_floatGY<Umbral_Gyro && MPU6500_Conv.MPU6500_floatGY>-Umbral_Gyro)
+		{
+			MPU6500_Conv.MPU6500_floatGY=0;
+		}
+	if(MPU6500_Conv.MPU6500_floatGX<Umbral_Gyro && MPU6500_Conv.MPU6500_floatGX>-Umbral_Gyro)
+		{
+			MPU6500_Conv.MPU6500_floatGX=0;
+		}
 	error=error+MPU6500_Conv.MPU6500_floatGZ*0.003;
 
 	pwmgiro=funcion_calcularPID(&TestPID,90 ,error , 0.02);
-	Motor.ENABLE=true;
+	Motor.ENABLE=false;
 	Motor.PWM_MR=(int16_t)(pwmdistancia+pwmgiro);
 	Motor.PWM_ML=(int16_t)(pwmdistancia-pwmgiro);
 	PWM_Motores(&Motor);
@@ -356,12 +364,12 @@ if((HAL_GetTick()-tiempo)>500)
 	sprintf(bufferTxt,"D=%0.2f, ",ADC_Distancia[3]);
 		HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 */
-	sprintf(bufferTxt,"pwmD=%0.2f, ",error);
+	sprintf(bufferTxt,"giro=%0.2f, ",error);
 	HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
-	sprintf(bufferTxt,"pwmG=%0.2f, ",pwmgiro);
+	sprintf(bufferTxt,"pwm=%0.2f, ",pwmgiro);
 		HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 
-	//MPU6500();
+	MPU6500();
 sprintf(bufferTxt,"\r\n");
 HAL_UART_Transmit(&huart3, (uint8_t *)bufferTxt, strlen(bufferTxt), HAL_MAX_DELAY);
 tiempo=HAL_GetTick();
@@ -465,7 +473,7 @@ void Inicializar_Sistema()
 
 	LED1_GPIO_Port->BSRR=(uint32_t)LED1_Pin;
 	HAL_Delay(1000);
-	MPU6500_Status=MPU6500_Init(&MPU6500_Datos,50,DPS500,G2);
+	MPU6500_Status=MPU6500_Init(&MPU6500_Datos,50,DPS250,G2);
 	if (MPU6500_Status==MPU6500_fail) {
 		for (;;) {
 			sprintf(bufferTxt,"Fallo al iniciar MPU\r\n");
