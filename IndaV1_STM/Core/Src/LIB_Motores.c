@@ -43,7 +43,6 @@ void Inicializar_Motores(Motores_Init * Mot)
 	HAL_TIM_PWM_Start(&PWM_Timer_Mot, PWM_ML_B);
 	HAL_TIM_PWM_Start(&PWM_Timer_Mot, PWM_MR_B);
 	HAL_TIM_PWM_Start(&PWM_Timer_Mot, PWM_MR_A);
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 1);
 	__HAL_TIM_SET_COMPARE(&PWM_Timer_Mot,PWM_ML_A,0);
 	__HAL_TIM_SET_COMPARE(&PWM_Timer_Mot,PWM_ML_B,0);
 	__HAL_TIM_SET_COMPARE(&PWM_Timer_Mot,PWM_MR_B,0);
