@@ -120,7 +120,7 @@ void PWM_Motores(Motores_Init * Mot)
 
 		PWM_MR=999+Mot->PWM_MR;
 		__HAL_TIM_SET_COMPARE(&PWM_Timer_Mot,PWM_MR_A,999);
-		__HAL_TIM_SET_COMPARE(&PWM_Timer_Mot,PWM_MR_B,PWM_ML);
+		__HAL_TIM_SET_COMPARE(&PWM_Timer_Mot,PWM_MR_B,PWM_MR);
 	}
 	else
 	{
